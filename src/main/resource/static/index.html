@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<title>Demo</title>
+<meta name="description" content="" />
+<meta name="viewport" content="width=device-width" />
+<base href="/" />
+<link rel="stylesheet" type="text/css"
+	href="/webjars/bootstrap/css/bootstrap.min.css" />
+<script type="text/javascript" src="/webjars/jquery/jquery.min.js"></script>
+<script type="text/javascript"
+	src="/webjars/bootstrap/js/bootstrap.min.js"></script>
+</head>
+<body ng-app="app" ng-controller="home as home">
+	<h1>Login</h1>
+	<div class="container" ng-show="!home.authenticated">
+		<div>
+			With Facebook: <a href="/login/facebook">click here</a>
+		</div>
+		<div>
+			With Github: <a href="/login/github">click here</a>
+		</div>
+		<div>
+			With Spiegel: <a id="OpenDialog" href="#">click here</a>
+		</div>
+	</div>
+	<div class="container" ng-show="home.authenticated">
+		Logged in as: <span ng-bind="home.user"></span>
+		<div>
+			<button ng-click="home.logout()" class="btn btn-primary">Logout</button>
+		</div>
+	</div>
+	
+	<br /><br /><br />
+	
+	<div class="container" ng-show="home.authenticated">
+	<form ng-submit="parseUrl()" >
+				<div class="form-group">
+					<label>Url</label>
+					<input type="text" ng-model="page.url" class="form-control" required ng-minlength="7" />
+				</div>
+				
+				<input class="btn btn-success" type="submit" value="Analyze Page"/>
+		</form>
+	<br/><br/>
+		<div class="alert" id="divstatus" style="visibility:hidden">
+			  {{statusmsg}}
+			  
+			  <br/><br/><br/>
+			<table class="table table-bordered"  >
+			<tr> <td>Url:</td><td>{{myUrl.url}}</td> </tr>
+			<tr> <td>Html Version:</td><td>{{myUrl.version}}</td> </tr>
+			<tr> <td>Page Title:</td><td>{{myUrl.pageTitle}}</td></tr>
+			<tr> 
+				<td>Headings:</td>
+				<td> 
+			      <tr ng-repeat="(key, value) in myUrl.headingLevels">
+    				<td> {{key}} </td> <td> {{ value }} </td>
+				  </tr>
+				</td>
+			</tr>
+			
+			<tr> 
+				<td>Hypermedia Links:</td>
+				<td>
+					 <ul>
+					  <li ng:repeat="(linkGroup, linkGroupVal) in myUrl.groupedHypermediaLinks" style="font:bold;"> {{linkGroup}}
+               		
+               		 			<ul><li ng:repeat="(key,value) in linkGroupVal">{{key}} : {{value.length}}
+               		 				<ul><li ng:repeat="hyperMediaLink in value" style="word-break: break-all;">
+               		 						{{hyperMediaLink.tagName}} - {{hyperMediaLink.url}} 
+               		 				</li></ul>
+               		 			
+               		 			</li></ul>
+					 </li>
+					 
+					 </ul>
+				</td>
+			</tr>	
+			</table>
+		</div>
+		
+	</div>
+
+	
+	<script type="text/javascript" src="/webjars/angularjs/angular.min.js"></script>
+	
+	<script type="text/javascript">
+	$(document).ready(function() {
+		$("#OpenDialog").click(function() {
+			var w = window.open("https://www.spiegel.de/meinspiegel/login.html", "popupWindow", "width=600, height=400, scrollbars=yes");
+			w.onload = function() {
+				
+		    }
+		});
+	});
+	</script>
+	
+	<script type="text/javascript">
+	var app = angular.module('app', []);
+	      app.config(
+						function($httpProvider) {
+							$httpProvider.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+						}).controller("home", function($http, $location, $scope) {
+					var self = this;
+					$http.get("/user").success(function(data) {
+						if (data.name) {
+							self.user = data.name;
+							self.authenticated = true;
+						} else {
+							self.user = "N/A";
+							self.authenticated = false;
+						}
+					}).error(function() {
+						self.user = "N/A";
+						self.authenticated = false;
+					});
+					
+					self.logout = function() {
+						$http.post('logout', {}).success(function() {
+							self.authenticated = false;
+							$location.path("/");
+						}).error(function(data) {
+							console.log("Logout failed")
+							self.authenticated = false;
+						});
+					};
+					
+					// analyze the page
+					$scope.parseUrl = function()	{
+						var request = $http( {
+							method  : "POST",
+							url		: "/parse",
+							data	: {
+								"url" 	: $scope.page.url
+							}
+						}).success(function (response)	{
+								angular.element(document.querySelector("#divstatus")).css("visibility", "visible");
+								$scope.statusmsg="Analzing has been done successfully!";
+								angular.element(document.querySelector("#divstatus")).addClass("alert-success");
+								$scope.myUrl = response;
+								$scope.page.url = null; 
+								
+							}).error(function (response)	{
+								angular.element(document.querySelector("#divstatus")).css("visibility", "visible");
+								angular.element(document.querySelector("#divstatus")).addClass("alert-danger");
+								$scope.statusmsg="Error:" +  response.message;
+							});
+							
+					}
+			
+						});
+	      
+	     
+	    	  
+	</script>
+</body>
+</html>
